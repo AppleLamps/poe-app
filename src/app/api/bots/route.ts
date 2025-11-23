@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { botSchema, botUpdateSchema, botIdSchema } from "@/lib/validations"
 
 export async function GET(request: NextRequest) {
   try {
@@ -60,11 +61,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { name, avatarUrl, systemPrompt, modelName, temperature, maxTokens } = await request.json()
-
-    if (!name || !systemPrompt || !modelName) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    const body = await request.json()
+    
+    // Validate request body
+    const validationResult = botSchema.safeParse(body)
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: validationResult.error.errors },
+        { status: 400 }
+      )
     }
+
+    const { name, avatarUrl, systemPrompt, modelName, temperature, maxTokens } = validationResult.data
 
     const bot = await prisma.bot.create({
       data: {
@@ -73,8 +81,8 @@ export async function POST(request: NextRequest) {
         avatarUrl,
         systemPrompt,
         modelName,
-        temperature: temperature || 0.7,
-        maxTokens: maxTokens || 4096,
+        temperature,
+        maxTokens,
       },
     })
 
@@ -92,33 +100,50 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { id, name, avatarUrl, systemPrompt, modelName, temperature, maxTokens } = await request.json()
+    const body = await request.json()
 
-    if (!id) {
-      return NextResponse.json({ error: "Missing bot ID" }, { status: 400 })
+    // Validate request body
+    const validationResult = botUpdateSchema.safeParse(body)
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: validationResult.error.errors },
+        { status: 400 }
+      )
     }
+
+    const { id, name, avatarUrl, systemPrompt, modelName, temperature, maxTokens } = validationResult.data
+
+    // Build update data object, only including defined fields
+    const updateData: {
+      name?: string
+      avatarUrl?: string | null
+      systemPrompt?: string
+      modelName?: string
+      temperature?: number
+      maxTokens?: number
+    } = {}
+    
+    if (name !== undefined) updateData.name = name
+    if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl || null
+    if (systemPrompt !== undefined) updateData.systemPrompt = systemPrompt
+    if (modelName !== undefined) updateData.modelName = modelName
+    if (temperature !== undefined) updateData.temperature = temperature
+    if (maxTokens !== undefined) updateData.maxTokens = maxTokens
 
     const bot = await prisma.bot.updateMany({
       where: {
         id,
         ownerId: session.user.id, // Only allow updating own bots
       },
-      data: {
-        ...(name && { name }),
-        ...(avatarUrl !== undefined && { avatarUrl }),
-        ...(systemPrompt && { systemPrompt }),
-        ...(modelName && { modelName }),
-        ...(temperature !== undefined && { temperature }),
-        ...(maxTokens !== undefined && { maxTokens }),
-      },
+      data: updateData,
     })
 
     if (bot.count === 0) {
       return NextResponse.json({ error: "Bot not found or not authorized" }, { status: 404 })
     }
 
-    const updatedBot = await prisma.bot.findUnique({
-      where: { id },
+    const updatedBot = await prisma.bot.findFirst({
+      where: { id, ownerId: session.user.id },
     })
 
     return NextResponse.json(updatedBot)
@@ -140,6 +165,15 @@ export async function DELETE(request: NextRequest) {
 
     if (!botId) {
       return NextResponse.json({ error: "Missing bot ID" }, { status: 400 })
+    }
+
+    // Validate bot ID format
+    const idValidation = botIdSchema.safeParse(botId)
+    if (!idValidation.success) {
+      return NextResponse.json(
+        { error: "Invalid bot ID format", details: idValidation.error.errors },
+        { status: 400 }
+      )
     }
 
     const bot = await prisma.bot.deleteMany({

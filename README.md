@@ -17,11 +17,11 @@ A modern, production-ready multi-model chat application built with Next.js 16, T
 ## 🚀 Tech Stack
 
 - **Frontend**: Next.js 16 App Router, TypeScript 5, TailwindCSS 4, shadcn/ui
-- **Backend**: Next.js Route Handlers with Edge Runtime
+- **Backend**: Next.js Route Handlers with Node.js Runtime
 - **Database**: PostgreSQL with Prisma ORM 7
 - **Authentication**: NextAuth.js v4 with Google OAuth
 - **AI Integration**: OpenRouter API with streaming support
-- **Deployment**: Vercel-optimized with Edge Functions
+- **Deployment**: Vercel-optimized with Node.js Runtime
 - **UI Components**: Radix UI primitives with custom styling
 - **Development**: ESLint, TypeScript strict mode, React Compiler enabled
 
@@ -141,7 +141,7 @@ npm start
 ```text
 src/
 ├── app/                  # Next.js App Router
-│   ├── api/             # API routes (Edge Runtime)
+│   ├── api/             # API routes (Node.js Runtime)
 │   │   ├── auth/        # NextAuth endpoints
 │   │   ├── bots/        # Bot CRUD operations
 │   │   ├── chat/        # Chat streaming endpoint
@@ -176,12 +176,12 @@ src/
 
 ## 🌟 Key Features
 
-### Edge Runtime Streaming
+### Node.js Runtime Streaming
 
-The chat API uses Vercel Edge Runtime for optimal performance:
+The chat API uses Node.js Runtime for compatibility with Prisma ORM:
 
 ```typescript
-export const runtime = "edge"
+export const runtime = "nodejs"
 ```
 
 ### Real-time SSE

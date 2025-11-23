@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useSession, signOut } from "next-auth/react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -35,54 +35,17 @@ interface ChatItem {
 }
 
 interface SidebarProps {
+  bots: BotItem[]
+  chats: ChatItem[]
   selectedBot?: string
   selectedChat?: string
   onBotSelect: (botId: string) => void
   onChatSelect: (chatId: string) => void
 }
 
-export function Sidebar({ selectedBot, selectedChat, onBotSelect, onChatSelect }: SidebarProps) {
+export function Sidebar({ bots, chats, selectedBot, selectedChat, onBotSelect, onChatSelect }: SidebarProps) {
   const { data: session } = useSession()
-  const [bots, setBots] = useState<BotItem[]>([])
-  const [chats, setChats] = useState<ChatItem[]>([])
   const [isMobileOpen, setIsMobileOpen] = useState(false)
-  const [isLoadingBots, setIsLoadingBots] = useState(false)
-  const [isLoadingChats, setIsLoadingChats] = useState(false)
-
-  useEffect(() => {
-    fetchBots()
-    fetchChats()
-  }, [])
-
-  const fetchBots = async () => {
-    setIsLoadingBots(true)
-    try {
-      const response = await fetch("/api/bots")
-      if (response.ok) {
-        const data = await response.json()
-        setBots(data)
-      }
-    } catch (error) {
-      console.error("Failed to fetch bots:", error)
-    } finally {
-      setIsLoadingBots(false)
-    }
-  }
-
-  const fetchChats = async () => {
-    setIsLoadingChats(true)
-    try {
-      const response = await fetch("/api/chats")
-      if (response.ok) {
-        const data = await response.json()
-        setChats(data)
-      }
-    } catch (error) {
-      console.error("Failed to fetch chats:", error)
-    } finally {
-      setIsLoadingChats(false)
-    }
-  }
 
   const createNewChat = () => {
     try {
@@ -171,14 +134,7 @@ export function Sidebar({ selectedBot, selectedChat, onBotSelect, onChatSelect }
                   Default Models
                 </h3>
                 <div className="space-y-2">
-                  {isLoadingBots ? (
-                    <div className="space-y-2">
-                      {[1, 2, 3].map((i) => (
-                        <div key={i} className="h-12 bg-muted rounded-lg animate-pulse" />
-                      ))}
-                    </div>
-                  ) : (
-                    defaultBots.map((bot) => (
+                  {defaultBots.map((bot) => (
                       <div key={bot.id}>
                       <Button
                         variant={selectedBot === bot.id ? "secondary" : "ghost"}
@@ -200,50 +156,39 @@ export function Sidebar({ selectedBot, selectedChat, onBotSelect, onChatSelect }
                       {/* Recent chats for this bot */}
                       {selectedBot === bot.id && (
                         <div className="ml-7 mt-1 space-y-1">
-                          {isLoadingChats ? (
-                            <div className="space-y-1">
-                              {[1, 2].map((i) => (
-                                <div key={i} className="h-6 bg-muted rounded animate-pulse" />
-                              ))}
-                            </div>
-                          ) : (
-                            <>
-                              {chats
-                                .filter(chat => chat.botId === bot.id)
-                                .slice(0, 3)
-                                .map((chat) => (
-                                  <Button
-                                    key={chat.id}
-                                    variant={selectedChat === chat.id ? "secondary" : "ghost"}
-                                    size="sm"
-                                    className="w-full justify-start text-xs"
-                                    onClick={() => {
-                                      onChatSelect(chat.id)
-                                      setIsMobileOpen(false)
-                                    }}
-                                  >
-                                    <MessageSquare className="h-3 w-3 mr-2" />
-                                    <div className="truncate">
-                                      {chat.messages[0]?.content.slice(0, 30) || "New chat"}...
-                                    </div>
-                                  </Button>
-                                ))}
+                          {chats
+                            .filter(chat => chat.botId === bot.id)
+                            .slice(0, 3)
+                            .map((chat) => (
                               <Button
-                                variant="ghost"
+                                key={chat.id}
+                                variant={selectedChat === chat.id ? "secondary" : "ghost"}
                                 size="sm"
-                                className="w-full justify-start text-xs text-muted-foreground"
-                                onClick={() => createNewChat()}
+                                className="w-full justify-start text-xs"
+                                onClick={() => {
+                                  onChatSelect(chat.id)
+                                  setIsMobileOpen(false)
+                                }}
                               >
-                                <Plus className="h-3 w-3 mr-2" />
-                                New chat
+                                <MessageSquare className="h-3 w-3 mr-2" />
+                                <div className="truncate">
+                                  {chat.messages[0]?.content.slice(0, 30) || "New chat"}...
+                                </div>
                               </Button>
-                            </>
-                          )}
+                            ))}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full justify-start text-xs text-muted-foreground"
+                            onClick={() => createNewChat()}
+                          >
+                            <Plus className="h-3 w-3 mr-2" />
+                            New chat
+                          </Button>
                         </div>
                       )}
-                      </div>
-                    ))
-                  )}
+                    </div>
+                  ))}
                 </div>
               </div>
 
