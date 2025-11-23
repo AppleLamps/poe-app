@@ -12,7 +12,6 @@ import {
   MessageSquare, 
   Plus, 
   Settings, 
-  User, 
   Bot, 
   LogOut,
   Menu,
@@ -47,6 +46,8 @@ export function Sidebar({ selectedBot, selectedChat, onBotSelect, onChatSelect }
   const [bots, setBots] = useState<BotItem[]>([])
   const [chats, setChats] = useState<ChatItem[]>([])
   const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const [isLoadingBots, setIsLoadingBots] = useState(false)
+  const [isLoadingChats, setIsLoadingChats] = useState(false)
 
   useEffect(() => {
     fetchBots()
@@ -54,6 +55,7 @@ export function Sidebar({ selectedBot, selectedChat, onBotSelect, onChatSelect }
   }, [])
 
   const fetchBots = async () => {
+    setIsLoadingBots(true)
     try {
       const response = await fetch("/api/bots")
       if (response.ok) {
@@ -62,10 +64,13 @@ export function Sidebar({ selectedBot, selectedChat, onBotSelect, onChatSelect }
       }
     } catch (error) {
       console.error("Failed to fetch bots:", error)
+    } finally {
+      setIsLoadingBots(false)
     }
   }
 
   const fetchChats = async () => {
+    setIsLoadingChats(true)
     try {
       const response = await fetch("/api/chats")
       if (response.ok) {
@@ -74,20 +79,16 @@ export function Sidebar({ selectedBot, selectedChat, onBotSelect, onChatSelect }
       }
     } catch (error) {
       console.error("Failed to fetch chats:", error)
+    } finally {
+      setIsLoadingChats(false)
     }
   }
 
-  const createNewChat = async (botId: string) => {
+  const createNewChat = () => {
     try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: "", botId }),
-      })
-      if (response.ok) {
-        fetchChats()
-        onChatSelect("") // Will trigger new chat creation
-      }
+      // Simply trigger new chat creation without sending empty message
+      onChatSelect("") // Will trigger new chat creation in parent component
+      setIsMobileOpen(false)
     } catch (error) {
       console.error("Failed to create chat:", error)
     }
@@ -170,8 +171,15 @@ export function Sidebar({ selectedBot, selectedChat, onBotSelect, onChatSelect }
                   Default Models
                 </h3>
                 <div className="space-y-2">
-                  {defaultBots.map((bot) => (
-                    <div key={bot.id}>
+                  {isLoadingBots ? (
+                    <div className="space-y-2">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="h-12 bg-muted rounded-lg animate-pulse" />
+                      ))}
+                    </div>
+                  ) : (
+                    defaultBots.map((bot) => (
+                      <div key={bot.id}>
                       <Button
                         variant={selectedBot === bot.id ? "secondary" : "ghost"}
                         className="w-full justify-start"
@@ -192,39 +200,50 @@ export function Sidebar({ selectedBot, selectedChat, onBotSelect, onChatSelect }
                       {/* Recent chats for this bot */}
                       {selectedBot === bot.id && (
                         <div className="ml-7 mt-1 space-y-1">
-                          {chats
-                            .filter(chat => chat.botId === bot.id)
-                            .slice(0, 3)
-                            .map((chat) => (
+                          {isLoadingChats ? (
+                            <div className="space-y-1">
+                              {[1, 2].map((i) => (
+                                <div key={i} className="h-6 bg-muted rounded animate-pulse" />
+                              ))}
+                            </div>
+                          ) : (
+                            <>
+                              {chats
+                                .filter(chat => chat.botId === bot.id)
+                                .slice(0, 3)
+                                .map((chat) => (
+                                  <Button
+                                    key={chat.id}
+                                    variant={selectedChat === chat.id ? "secondary" : "ghost"}
+                                    size="sm"
+                                    className="w-full justify-start text-xs"
+                                    onClick={() => {
+                                      onChatSelect(chat.id)
+                                      setIsMobileOpen(false)
+                                    }}
+                                  >
+                                    <MessageSquare className="h-3 w-3 mr-2" />
+                                    <div className="truncate">
+                                      {chat.messages[0]?.content.slice(0, 30) || "New chat"}...
+                                    </div>
+                                  </Button>
+                                ))}
                               <Button
-                                key={chat.id}
-                                variant={selectedChat === chat.id ? "secondary" : "ghost"}
+                                variant="ghost"
                                 size="sm"
-                                className="w-full justify-start text-xs"
-                                onClick={() => {
-                                  onChatSelect(chat.id)
-                                  setIsMobileOpen(false)
-                                }}
+                                className="w-full justify-start text-xs text-muted-foreground"
+                                onClick={() => createNewChat()}
                               >
-                                <MessageSquare className="h-3 w-3 mr-2" />
-                                <div className="truncate">
-                                  {chat.messages[0]?.content.slice(0, 30) || "New chat"}...
-                                </div>
+                                <Plus className="h-3 w-3 mr-2" />
+                                New chat
                               </Button>
-                            ))}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="w-full justify-start text-xs text-muted-foreground"
-                            onClick={() => createNewChat(bot.id)}
-                          >
-                            <Plus className="h-3 w-3 mr-2" />
-                            New chat
-                          </Button>
+                            </>
+                          )}
                         </div>
                       )}
-                    </div>
-                  ))}
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 

@@ -7,6 +7,8 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Bot, Send, User, Copy, Check } from "lucide-react"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 interface Message {
   id: string
@@ -154,7 +156,7 @@ export function ChatInterface({ botId, chatId }: ChatInterfaceProps) {
                     )
                   )
                 }
-              } catch (e) {
+              } catch {
                 // Skip invalid JSON
               }
             }
@@ -281,8 +283,10 @@ export function ChatInterface({ botId, chatId }: ChatInterfaceProps) {
                       : "bg-muted"
                   }`}
                 >
-                  <div className="whitespace-pre-wrap wrap-break-word">
-                    {message.content}
+                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {message.content}
+                    </ReactMarkdown>
                   </div>
                   
                   {/* Copy button */}

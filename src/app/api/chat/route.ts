@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { callOpenRouter, streamOpenRouterResponse } from "@/lib/openrouter"
 
-export const runtime = "edge"
+export const runtime = "nodejs"
 
 export async function POST(request: NextRequest) {
   try {
